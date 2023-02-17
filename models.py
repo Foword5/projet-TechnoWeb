@@ -1,6 +1,6 @@
 import peewee as p
 
-db = p.SqliteDatabase('db.sqlite')
+db = p.SqliteDatabase('db.sqlite3')
 
 class BaseModel(p.Model):
     class Meta:
