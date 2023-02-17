@@ -38,11 +38,11 @@ class Credit_Card(BaseModel):
 class Transaction(BaseModel):
     id = p.CharField(primary_key=True)
     success = p.BooleanField(default=False)
-    amount_charged = p.DecimalField(max_digits=10, decimal_places=2)
+    amount_charged = p.DoubleField()
 
 class Order(BaseModel):
     id = p.AutoField(primary_key=True)
-    total_price = p.DecimalField(max_digits=10, decimal_places=2)
+    total_price = p.DoubleField()
     email = p.CharField(default='null')
     credit_card = p.ForeignKeyField(Credit_Card, related_name='orders')
     shipping_information = p.ForeignKeyField(Shipping_Information, related_name='orders')
@@ -50,4 +50,4 @@ class Order(BaseModel):
     transaction = p.CharField()
     product = p.ForeignKeyField(Product, related_name='orders')
     quantity = p.IntegerField()
-    shipping_price = p.DecimalField(max_digits=10, decimal_places=2)
+    shipping_price = p.DoubleField()
