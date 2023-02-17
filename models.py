@@ -9,11 +9,13 @@ class BaseModel(p.Model):
 
 class Product(BaseModel):
     name = p.CharField()
-    id = p.AutoField(primary_key=True)
+    type = p.CharField()
+    id = p.IntegerField(primary_key=True)
     in_stock = p.BooleanField(default=True)
     description = p.TextField()
-    price = p.DecimalField(max_digits=10, decimal_places=2)
-    weight = p.DecimalField(max_digits=10, decimal_places=2)
+    price = p.DoubleField()
+    height = p.IntegerField()
+    weight = p.IntegerField()
     image = p.CharField()
     
 
