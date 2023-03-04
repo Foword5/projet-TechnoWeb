@@ -43,7 +43,7 @@ class Transaction(BaseModel):
 class Order(BaseModel):
     id = p.AutoField(primary_key=True)
     total_price = p.DoubleField()
-    email = p.CharField(default='null')
+    email = p.CharField(null=True)
     credit_card = p.ForeignKeyField(Credit_Card,null=True)
     shipping_information = p.ForeignKeyField(Shipping_Information,null=True)
     paid = p.BooleanField(default=False)

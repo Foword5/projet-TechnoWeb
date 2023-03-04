@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from playhouse.shortcuts import model_to_dict, dict_to_model
+from playhouse.shortcuts import model_to_dict
 import urllib.request
 import json
 from models import *
@@ -30,6 +30,8 @@ def get_order(id):
 
         #product is an object with the id of the product and the quantity
         order["product"] = {"id": order["product"]["id"], "quantity": order["quantity"]}
+        #delete the quantity key
+        del order["quantity"]
         return jsonify(order)
         
     except Order.DoesNotExist:
