@@ -13,6 +13,33 @@ def products():
         products["products"].append(model_to_dict(product))
     return jsonify(products)
 
+#get order
+@app.route('/order/<id>', methods=['GET'])
+def get_order(id):
+    try:
+        order = Order.get(Order.id == id)
+        #jsonify the order
+        order = model_to_dict(order)
+        #if credit_card is null or shipping_information is null or transaction is null, replace null value with an empty object
+        if order["credit_card"] == None:
+            order["credit_card"] = {}
+        if order["shipping_information"] == None:
+            order["shipping_information"] = {}
+        if order["transaction"] == None:
+            order["transaction"] = {}
+
+        #product is an object with the id of the product and the quantity
+        order["product"] = {"id": order["product"]["id"], "quantity": order["quantity"]}
+        return jsonify(order)
+        
+    except Order.DoesNotExist:
+        return jsonify(
+            { "errors" : 
+             { "order": 
+              { "code": "not-found", "name": "La commande demandée n'existe pas" } 
+                } 
+            } ), 422
+    
 #create new order
 @app.route('/order', methods=['POST'])
 def create_order():
@@ -71,7 +98,8 @@ def create_order():
         product = product,
         quantity = quantity
     )
-    return jsonify(model_to_dict(order))
+    #return code 302 and the link to the order
+    return jsonify(model_to_dict(order)), 302, {'Location': '/order/' + str(order.id)}
 
 
 
@@ -86,6 +114,3 @@ def init_products():
     products = json.loads(data)
     for product in products["products"]:
         Product.create(**product)
-
-
-
