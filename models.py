@@ -33,7 +33,6 @@ class Credit_Card(BaseModel):
     first_digits = p.CharField()
     last_digits = p.CharField()  
     expiration_year = p.IntegerField()
-    cvv = p.CharField()
     expiration_month = p.IntegerField()
 
 class Transaction(BaseModel):
