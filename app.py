@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from playhouse.shortcuts import model_to_dict
 import urllib.request
+from urllib.error import HTTPError
 import json
 from models import *
 
@@ -102,6 +103,158 @@ def create_order():
     )
     #return code 302 and the link to the order
     return jsonify(model_to_dict(order)), 302, {'Location': '/order/' + str(order.id)}
+
+
+@app.route('/order/<int:order_id>', methods=["PUT"])
+def add_ship(order_id):
+    try:
+        order = Order.get(Order.id == order_id)
+        #jsonify the order
+        order = model_to_dict(order)
+
+        #Checking if it is an order or a credit card edit
+        if "order" in request.json :
+            orderInfo = request.json["order"]
+
+            #Checking if we have all the informations we need
+            if ("email" not in orderInfo or 
+                "shipping_information" not in orderInfo or 
+                "country" not in orderInfo["shipping_information"] or
+                "address" not in orderInfo["shipping_information"] or
+                "postal_code" not in orderInfo["shipping_information"] or
+                "city" not in orderInfo["shipping_information"] or
+                "province" not in orderInfo["shipping_information"]) :
+                return jsonify({
+                    "errors" : {
+                        "order": {
+                            "code": "missing-fields",
+                            "name": "Il manque un ou plusieurs champs qui sont obligatoires",
+                            }
+                        }
+                    } ), 422
+            
+            #creating new shipping informatin
+            shipping_info = Shipping_Information.create(
+                country = orderInfo["shipping_information"]["country"],
+                address = orderInfo["shipping_information"]["address"],
+                postal_code = orderInfo["shipping_information"]["postal_code"],
+                city = orderInfo["shipping_information"]["city"],
+                province = orderInfo["shipping_information"]["province"]
+            )
+            
+            #Adding the email and the shipping info to the order
+            (
+                Order.update({"email":orderInfo["email"],"shipping_information_id":shipping_info})
+                .where(Order.id ==order_id)
+                .execute()
+            )
+
+            order = Order.get(Order.id == order_id)
+            #jsonify the order
+            order = model_to_dict(order)
+            return jsonify(order), 200
+
+        elif "credit_card" in request.json :
+            #checking if the order has shipping info
+            if order["shipping_information"] == None or order["email"] == None:
+                return jsonify({
+                "errors" : {
+                    "order": {
+                        "code": "forbidden",
+                        "name": "Les informations du client sont nécessaire avant d'appliquer une carte de crédit",
+                        }
+                    }
+                } ), 403
+            
+            #checking if the order has already been payed
+            if order["paid"]:
+                return jsonify({
+                    "errors" : {
+                        "order": {
+                            "code": "already-paid",
+                            "name": "La commande a déjà été payée."
+                            }
+                        }
+                    } ), 422
+
+            creditCardInfo = request.json["credit_card"]
+
+            #Checking if we have all the informations we need
+            if ("name" not in creditCardInfo or
+                "number" not in creditCardInfo or
+                "expiration_year" not in creditCardInfo or
+                "cvv" not in creditCardInfo or
+                "expiration_month" not in creditCardInfo) :
+                return jsonify({
+                    "errors" : {
+                        "order": {
+                            "code": "missing-fields",
+                            "name": "Il manque un ou plusieurs champs qui sont obligatoires",
+                            }
+                        }
+                    } ), 422
+            
+            try:
+                #creating the data to send to the payement API
+                paymentData = {
+                    "credit_card" : creditCardInfo,
+                    "amount_charged": order["shipping_price"]
+                }
+
+                #asking the payement API if the payement is accepted
+                paymenent = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/pay/", data = json.dumps(paymentData).encode('utf-8'))
+                payementInfo = json.loads(paymenent.read().decode("utf-8"))
+
+                #creating the credit card info
+                creditCard =  Credit_Card.create(
+                    name = payementInfo["credit_card"]["name"],
+                    first_digits = payementInfo["credit_card"]["first_digits"],
+                    last_digits = payementInfo["credit_card"]["last_digits"],
+                    expiration_year = payementInfo["credit_card"]["expiration_year"],
+                    expiration_month = payementInfo["credit_card"]["expiration_month"]
+                )
+
+                #creating the transaction infos
+                transaction = Transaction.create(
+                    id = payementInfo["transaction"]["id"],
+                    success = payementInfo["transaction"]["success"],
+                    amount_charged = payementInfo["transaction"]["amount_charged"]
+                )
+
+                #Adding the creadit card info and the transaction info to the order
+                (
+                    Order.update({"transaction":transaction,"credit_card":creditCard, "paid":payementInfo["transaction"]["success"]})
+                    .where(Order.id ==order_id)
+                    .execute()
+                )
+
+                order = Order.get(Order.id == order_id)
+                #jsonify the order
+                order = model_to_dict(order)
+                return jsonify(order), 200
+
+            except HTTPError as e:
+                #if the paymenet is refused, then we send the error
+                payementInfo = json.loads(e.read())
+                return jsonify(payementInfo), e.code
+        
+        return jsonify({
+                "errors" : {
+                    "order": {
+                        "code": "missing-fields",
+                        "name": "Il manque un ou plusieurs champs qui sont obligatoires",
+                        }
+                    }
+                } ), 422 
+        
+    except Order.DoesNotExist:
+        return jsonify(
+            { "errors" : 
+             { "order": 
+              { "code": "not-found", "name": "La commande demandée n'existe pas" } 
+                } 
+            } ), 422
+
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
