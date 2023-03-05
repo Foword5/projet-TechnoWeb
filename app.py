@@ -103,15 +103,13 @@ def create_order():
     #return code 302 and the link to the order
     return jsonify(model_to_dict(order)), 302, {'Location': '/order/' + str(order.id)}
 
-
-
-
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
     db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order])
 
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
 def init_products():
+    Product.delete().execute()
     data = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/products/products.json").read().decode("utf-8")
     products = json.loads(data)
     for product in products["products"]:
