@@ -30,7 +30,8 @@ class Shipping_Information(BaseModel):
 class Credit_Card(BaseModel):
     id = p.AutoField(primary_key=True)
     name = p.CharField()
-    number = p.CharField()
+    first_digits = p.CharField()
+    last_digits = p.CharField()  
     expiration_year = p.IntegerField()
     cvv = p.CharField()
     expiration_month = p.IntegerField()
