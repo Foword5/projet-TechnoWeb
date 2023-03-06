@@ -106,12 +106,22 @@ def create_order():
 
 
 @app.route('/order/<int:order_id>', methods=["PUT"])
-def add_ship(order_id):
+def update_order(order_id):
     try:
         order = Order.get(Order.id == order_id)
         #jsonify the order
         order = model_to_dict(order)
 
+        #checking if there is both credit card and shippment
+        if "order" in request.json and "credit_card" in request.json :
+            return jsonify({
+                "errors" : {
+                    "order": {
+                        "code": "missing-fields",
+                        "name": "Vous ne pouvez ajouter les informations sur le client et sur la carte de crédit en même temps",
+                        }
+                    }
+                } ), 422
         #Checking if it is an order or a credit card edit
         if "order" in request.json :
             orderInfo = request.json["order"]
@@ -253,7 +263,7 @@ def add_ship(order_id):
              { "order": 
               { "code": "not-found", "name": "La commande demandée n'existe pas" } 
                 } 
-            } ), 422
+            } ), 404
 
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db

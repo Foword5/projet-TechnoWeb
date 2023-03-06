@@ -51,15 +51,15 @@ def test_create_order(client):
     assert rv.status_code == 400
 
 def test_get_order(client):
-    client.post('/order', json={
-        "product": { "id": 2, "quantity": 2 }
-    })
+    #get order successfully
     rv = client.get('/order/1')
-    assert rv.status_code == 200 and rv.json['id'] == 1 and rv.json['product']['id'] == 2
+    assert rv.status_code == 200 and rv.json['id'] == 1
 
+    #inexisting order
     rv = client.get('/order/123')
     assert rv.status_code == 422
 
+    #no order id specified
     rv = client.get('/order/')
     assert rv.status_code == 404
 
@@ -78,6 +78,32 @@ def test_put_order(client):
                 "postal_code" : "G7X 3Y7",
                 "city" : "Chicoutimi",
                 "province" : "QC"
+                }
+        }
+    })
+    assert rv.status_code == 404
+
+    #empty json
+    rv = client.put('/order/1', json={
+    })
+    assert rv.status_code == 422
+
+    #both credit card info and shippement info at the same time
+    rv = client.put('/order/1', json={
+        "credit_card" : {
+            "name" : "John Doe",
+            "number" : "4242 4242 4242 4242",
+            "expiration_year" : 2024,
+            "cvv" : "123",
+            "expiration_month" : 9
+        },
+        "order" : {
+            "email" : "jgnault@uqac.ca",
+            "shipping_information" : {
+                "country" : "Canada",
+                "address" : "201, rue Président-Kennedy",
+                "postal_code" : "G7X 3Y7",
+                "city" : "Chicoutimi"
                 }
         }
     })
@@ -174,4 +200,16 @@ def test_put_order(client):
         }
     })
     assert rv.status_code == 200
+
+    #Order has already been payed
+    rv = client.put('/order/1', json={
+        "credit_card" : {
+            "name" : "John Doe",
+            "number" : "4242 4242 4242 4242",
+            "expiration_year" : 2024,
+            "cvv" : "123",
+            "expiration_month" : 9
+        }
+    })
+    assert rv.status_code == 422
     
