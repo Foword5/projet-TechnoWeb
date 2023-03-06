@@ -258,6 +258,7 @@ def add_ship(order_id):
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
+    db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order])
     db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order])
 
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
