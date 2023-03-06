@@ -15,7 +15,7 @@ def products():
     return jsonify(products)
 
 #get order
-@app.route('/order/<id>', methods=['GET'])
+@app.route('/order/<int:id>', methods=['GET'])
 def get_order(id):
     try:
         order = Order.get(Order.id == id)
@@ -144,7 +144,7 @@ def add_ship(order_id):
             
             #Adding the email and the shipping info to the order
             (
-                Order.update({"email":orderInfo["email"],"shipping_information":shipping_info})
+                Order.update({"email":orderInfo["email"],"shipping_information":shipping_info}) 
                 .where(Order.id ==order_id)
                 .execute()
             )
@@ -263,7 +263,12 @@ def init_db():
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
 def init_products():
     Product.delete().execute()
-    data = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/products/products.json").read().decode("utf-8")
-    products = json.loads(data)
-    for product in products["products"]:
-        Product.create(**product)
+    try:
+        data = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/products/products.json").read().decode("utf-8")
+        products = json.loads(data)
+        for product in products["products"]:
+            Product.create(**product)
+    except HTTPError as e:
+        # If we can't get the products
+        error = json.loads(e.read())
+        print(e.code, error)
