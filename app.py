@@ -144,7 +144,7 @@ def add_ship(order_id):
             
             #Adding the email and the shipping info to the order
             (
-                Order.update({"email":orderInfo["email"],"shipping_information_id":shipping_info})
+                Order.update({"email":orderInfo["email"],"shipping_information":shipping_info})
                 .where(Order.id ==order_id)
                 .execute()
             )
@@ -160,11 +160,11 @@ def add_ship(order_id):
                 return jsonify({
                 "errors" : {
                     "order": {
-                        "code": "forbidden",
+                        "code": "missing-fields",
                         "name": "Les informations du client sont nécessaire avant d'appliquer une carte de crédit",
                         }
                     }
-                } ), 403
+                } ), 422
             
             #checking if the order has already been payed
             if order["paid"]:
