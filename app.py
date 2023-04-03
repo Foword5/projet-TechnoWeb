@@ -278,6 +278,10 @@ def init_products():
         data = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/products/products.json").read().decode("utf-8")
         products = json.loads(data)
         for product in products["products"]:
+            # Supprimer les caractères nuls de chaque chaîne de caractères
+            for key, value in product.items():
+                if isinstance(value, str):
+                    product[key] = value.replace('\x00', '')
             Product.create(**product)
     except HTTPError as e:
         # If we can't get the products
