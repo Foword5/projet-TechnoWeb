@@ -1,6 +1,19 @@
 import peewee as p
+import os
 
-db = p.SqliteDatabase('db.sqlite3')
+DB_HOST = os.environ.get('DB_HOST')
+DB_USER = os.environ.get('DB_USER')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_PORT = os.environ.get('DB_PORT')
+DB_NAME = os.environ.get('DB_NAME')
+
+db = p.PostgresqlDatabase(
+DB_NAME,
+user=DB_USER,
+password=DB_PASSWORD,
+host=DB_HOST,
+port=DB_PORT
+)
 
 class BaseModel(p.Model):
     class Meta:
