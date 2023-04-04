@@ -16,7 +16,5 @@ COPY . /app
 # Expose le port 5000 pour les connexions entrantes
 EXPOSE 5000
 
-CMD flask init-db && flask run
-
-
+CMD flask init-db && flask run --host='0.0.0.0'
 
