@@ -46,6 +46,57 @@ def test_create_order(client):
     })
     assert rv.status_code == 422
 
+    #created from list
+    rv = client.post('/order', json={ 
+        "products":[
+            {
+                "id": 2,
+                "quantity": 2
+            },
+            {
+                "id": 3,
+                "quantity": 2
+            } 
+        ]
+    })
+    assert rv.status_code == 302
+
+    #created from list with one product out of stock
+    rv = client.post('/order', json={ 
+        "products":[
+            {
+                "id": 2,
+                "quantity": 2
+            },
+            {
+                "id": 4,
+                "quantity": 2
+            } 
+        ]
+    })
+    assert rv.status_code == 422
+
+    #created from list with one product unknown
+    rv = client.post('/order', json={ 
+        "products":[
+            {
+                "id": 456,
+                "quantity": 2
+            },
+            {
+                "id": 3,
+                "quantity": 2
+            } 
+        ]
+    })
+    assert rv.status_code == 422
+
+    #empty list
+    rv = client.post('/order', json={ 
+        "products":[]
+    })
+    assert rv.status_code == 422
+
     #no json
     rv = client.post('/order')
     assert rv.status_code == 400

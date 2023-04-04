@@ -27,7 +27,6 @@ class BaseModel(p.Model):
     class Meta:
         database = db
 
-
 class Product(BaseModel):
     name = p.CharField()
     type = p.CharField()
@@ -37,8 +36,7 @@ class Product(BaseModel):
     price = p.DoubleField()
     height = p.IntegerField()
     weight = p.IntegerField()
-    image = p.CharField()
-    
+    image = p.CharField() 
 
 class Shipping_Information(BaseModel):
     id = p.AutoField(primary_key=True)
@@ -63,12 +61,15 @@ class Transaction(BaseModel):
 
 class Order(BaseModel):
     id = p.AutoField(primary_key=True)
-    total_price = p.DoubleField()
+    total_price = p.DoubleField(null=True)
     email = p.CharField(null=True)
     credit_card = p.ForeignKeyField(Credit_Card,null=True)
     shipping_information = p.ForeignKeyField(Shipping_Information,null=True)
     paid = p.BooleanField(default=False)
     transaction = p.ForeignKeyField(Transaction,null=True)
+    shipping_price = p.DoubleField(null=True)
+
+class ProductOrdered(BaseModel):
     product = p.ForeignKeyField(Product)
+    order = p.ForeignKeyField(Order)
     quantity = p.IntegerField()
-    shipping_price = p.DoubleField()
