@@ -29,10 +29,18 @@ def get_order(id):
         if order["transaction"] == None:
             order["transaction"] = {}
 
-        #product is an object with the id of the product and the quantity
-        order["product"] = {"id": order["product"]["id"], "quantity": order["quantity"]}
-        #delete the quantity key
-        del order["quantity"]
+        #get all products ordered 
+        products = []
+        for productOrdered in ProductOrdered.select().where(ProductOrdered.order == order["id"]):
+            product = model_to_dict(productOrdered)
+            products.append(
+                {
+                    "id": product["product"]["id"],
+                    "quantity": product["quantity"]
+                }
+            )
+        order["products"] = products
+
         return jsonify(order)
         
     except Order.DoesNotExist:
@@ -48,62 +56,94 @@ def get_order(id):
 def create_order():
 
     #check if the body contains a product with an id and a quantity
-    if "product" not in request.json or "id" not in request.json["product"] or "quantity" not in request.json["product"]:
+    if "product" not in request.json and ("products" not in request.json or len(request.json["products"]) < 1):
         return jsonify(
             { "errors" : 
              { "product": 
               { "code": "missing-fields", "name": "La création d'une commande nécessite un produit" } 
                 } 
             } ), 422
-    #check if the quantity is superior or equal to 1
-    if request.json["product"]["quantity"] < 1:
-        return jsonify(
-            { "errors" : 
-             { "product": 
-              { "code": "missing-fields", "name": "La quantité doit être supérieure ou égale à 1" } 
-                } 
-            } ), 422
     
-    #get the product if it exists
-    try:
-        product = Product.get(Product.id == request.json["product"]["id"])
-    except Product.DoesNotExist:
-        return jsonify(
-            { "errors" : 
-             { "product": 
-              { "code": "not-found", "name": "Le produit demandé n'existe pas" } 
-                } 
-            } ), 422
-    if product.in_stock == False :
-        return jsonify(
-            { "errors" : 
-             { "product": 
-              { "code": "out-of-inventory", "name": "Le produit demandé n'est pas en inventaire" } 
-                } 
-            } ), 422
+    #we create a liste containing either the one product or the list of products
+    #we prioritize the list of products
+    if "products" in request.json :
+        products = request.json["products"]
+    else:
+        products = [request.json["product"]]
     
-    quantity = request.json["product"]["quantity"]
-    #calculate the shipping price
-    total_price = product.price * quantity
+    #verify all possibles errors before creating the order
+    for product in products:
+        if "id" not in product or "quantity" not in product:
+            return jsonify(
+                { "errors" : 
+                    { "product": 
+                    { "code": "missing-fields", "name": "La création d'une commande nécessite un id et une quantité" } 
+                    } 
+                } ), 422
+        #get the product if it exists
+        if product["quantity"] < 1:
+            return jsonify(
+                { "errors" : 
+                    { "product": 
+                    { "code": "missing-fields", "name": "La quantité doit être supérieure ou égale à 1" } 
+                    } 
+                } ), 422
+        try:
+            product = Product.get(Product.id == product["id"])
+        except Product.DoesNotExist:
+            #if the product doesn't exist
+            return jsonify(
+                { "errors" : 
+                    { "product": 
+                    { "code": "not-found", "name": "L'un des produits demandé n'existe pas" } 
+                    } 
+                } ), 422
+        if product.in_stock == False : #if the product is not in stock
+            return jsonify(
+                { "errors" : 
+                    { "product": 
+                    { "code": "out-of-inventory", "name": "L'un des produit demandé n'est pas en inventaire" } 
+                    } 
+                } ), 422
+
+    #create the order
+    order = Order.create()
+
+    total_price = 0
+    shippingWeight = 0
+
+    for product in products:
+        #get the product
+        productObject = Product.get(Product.id == product["id"])
+        #add the product to the order
+        ProductOrdered.create(
+            order = order,
+            product = productObject,
+            quantity = product["quantity"]
+        )
+        #add the price of the product to the shipping price
+        total_price += productObject.price * product["quantity"]
+        #add the weight of the product to the shipping weight
+        shippingWeight += productObject.weight * product["quantity"]
     
-    #calculate the shipping price based on the weight of the product
-    if product.weight * quantity < 500:
+
+    if shippingWeight < 500:
         shipping_price = total_price + 5
-    elif product.weight * quantity < 2000:
+    elif shippingWeight < 2000:
         shipping_price = total_price + 10
     else:
         shipping_price = total_price + 25
 
-    #create the order
-    order = Order.create(
-        total_price = total_price,
-        shipping_price = shipping_price,
-        product = product,
-        quantity = quantity
+    #adding the total price and the shipping price to the order
+    (
+        Order.update({"shipping_price": shipping_price, "total_price": total_price}) 
+        .where(Order.id ==order.id)
+        .execute()
     )
-    #return code 302 and the link to the order
-    return jsonify(model_to_dict(order)), 302, {'Location': '/order/' + str(order.id)}
 
+    return jsonify(model_to_dict(order)), 302, {'Location': '/order/' + str(order.id)}
+    
+        
 
 @app.route('/order/<int:order_id>', methods=["PUT"])
 def update_order(order_id):
@@ -268,8 +308,8 @@ def update_order(order_id):
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
-    db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order])
-    db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order])
+    db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered],cascade=True)
+    db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered])
 
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
 def init_products():
