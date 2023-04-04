@@ -39,6 +39,9 @@ def get_order(id):
                     "quantity": product["quantity"]
                 }
             )
+        #if there is only one product, we add a product field to the order
+        if len(products) == 1:
+            order["product"] = products[0]
         order["products"] = products
 
         return jsonify(order)
