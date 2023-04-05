@@ -4,8 +4,12 @@ import urllib.request
 from urllib.error import HTTPError
 import json
 from models import *
+import redis
 
 app = Flask(__name__)
+redis_url = os.environ.get('REDIS_URL')
+# redis_url = "redis://localhost"
+redis_client = redis.from_url(redis_url)
 
 @app.route('/')
 def products():
@@ -17,42 +21,47 @@ def products():
 #get order
 @app.route('/order/<int:id>', methods=['GET'])
 def get_order(id):
-    try:
-        order = Order.get(Order.id == id)
-        #jsonify the order
-        order = model_to_dict(order)
-        #if credit_card is null or shipping_information is null or transaction is null, replace null value with an empty object
-        if order["credit_card"] == None:
-            order["credit_card"] = {}
-        if order["shipping_information"] == None:
-            order["shipping_information"] = {}
-        if order["transaction"] == None:
-            order["transaction"] = {}
+    order = redis_client.get(id)
+    if order == None:
+        try:
+            order = Order.get(Order.id == id)
+            #jsonify the order
+            order = model_to_dict(order)
+        except Order.DoesNotExist:
+            return jsonify(
+                { "errors" : 
+                { "order": 
+                { "code": "not-found", "name": "La commande demandée n'existe pas" } 
+                    } 
+                } ), 422
+    else:
+        order = json.loads(order)
 
-        #get all products ordered 
-        products = []
-        for productOrdered in ProductOrdered.select().where(ProductOrdered.order == order["id"]):
-            product = model_to_dict(productOrdered)
-            products.append(
-                {
-                    "id": product["product"]["id"],
-                    "quantity": product["quantity"]
-                }
-            )
-        #if there is only one product, we add a product field to the order
-        if len(products) == 1:
-            order["product"] = products[0]
-        order["products"] = products
+    #if credit_card is null or shipping_information is null or transaction is null, replace null value with an empty object
+    if order["credit_card"] == None:
+        order["credit_card"] = {}
+    if order["shipping_information"] == None:
+        order["shipping_information"] = {}
+    if order["transaction"] == None:
+        order["transaction"] = {}
 
-        return jsonify(order)
+    #get all products ordered 
+    products = []
+    for productOrdered in ProductOrdered.select().where(ProductOrdered.order == order["id"]):
+        product = model_to_dict(productOrdered)
+        products.append(
+            {
+                "id": product["product"]["id"],
+                "quantity": product["quantity"]
+            }
+        )
+    #if there is only one product, we add a product field to the order
+    if len(products) == 1:
+        order["product"] = products[0]
+    order["products"] = products
+
+    return jsonify(order)
         
-    except Order.DoesNotExist:
-        return jsonify(
-            { "errors" : 
-             { "order": 
-              { "code": "not-found", "name": "La commande demandée n'existe pas" } 
-                } 
-            } ), 422
     
 #create new order
 @app.route('/order', methods=['POST'])
@@ -284,6 +293,8 @@ def update_order(order_id):
                 order = Order.get(Order.id == order_id)
                 #jsonify the order
                 order = model_to_dict(order)
+
+                redis_client.set(order["id"], json.dumps(order))
                 return jsonify(order), 200
 
             except HTTPError as e:
