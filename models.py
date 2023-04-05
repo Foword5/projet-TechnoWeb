@@ -6,21 +6,21 @@ DB_USER = os.environ.get('DB_USER')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 DB_PORT = os.environ.get('DB_PORT')
 DB_NAME = os.environ.get('DB_NAME')
-'''
 
-DB_HOST = 'localhost'
-DB_USER = 'user'
-DB_PASSWORD = 'pass'
-DB_PORT = '5432'
-DB_NAME = 'api8inf349'''
+
+# DB_HOST = 'localhost'
+# DB_USER = 'user'
+# DB_PASSWORD = 'pass'
+# DB_PORT = '5432'
+# DB_NAME = 'api8inf349'
 
 
 db = p.PostgresqlDatabase(
-DB_NAME,
-user=DB_USER,
-password=DB_PASSWORD,
-host=DB_HOST,
-port=DB_PORT
+    DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT
 )
 
 class BaseModel(p.Model):
