@@ -1,5 +1,6 @@
 import pytest
 from app import *
+import time
 
 # Create a test client using the Flask application configured for testing
 
@@ -115,6 +116,39 @@ def test_get_order(client):
     assert rv.status_code == 404
 
 def test_put_order(client):
+    #we create multiple orders to test the put method
+    client.post('/order', json={
+        "product": { "id": 2, "quantity": 2 }
+    })
+    client.post('/order', json={
+        "product": { "id": 2, "quantity": 2 }
+    })
+    #and we add the shipping info
+    client.put('/order/2', json={
+        "order" : {
+            "email" : "jgnault@uqac.ca",
+            "shipping_information" : {
+                "country" : "Canada",
+                "address" : "201, rue Président-Kennedy",
+                "postal_code" : "G7X 3Y7",
+                "city" : "Chicoutimi",
+                "province" : "QC"
+                }
+        }
+    })
+    client.put('/order/3', json={
+        "order" : {
+            "email" : "jgnault@uqac.ca",
+            "shipping_information" : {
+                "country" : "Canada",
+                "address" : "201, rue Président-Kennedy",
+                "postal_code" : "G7X 3Y7",
+                "city" : "Chicoutimi",
+                "province" : "QC"
+                }
+        }
+    })
+
     #no json
     rv = client.put('/order/1')
     assert rv.status_code == 400
@@ -226,10 +260,10 @@ def test_put_order(client):
             "expiration_month" : 9
         }
     })
-    assert rv.status_code == 422
+    assert rv.status_code == 202
 
     #unknown card
-    rv = client.put('/order/1', json={
+    rv = client.put('/order/2', json={
         "credit_card" : {
             "name" : "John Doe",
             "number" : "4000 5735 2356 4502",
@@ -238,10 +272,10 @@ def test_put_order(client):
             "expiration_month" : 9
         }
     })
-    assert rv.status_code == 422
+    assert rv.status_code == 202
 
     #successfully adding credit card info and paying
-    rv = client.put('/order/1', json={
+    rv = client.put('/order/3', json={
         "credit_card" : {
             "name" : "John Doe",
             "number" : "4242 4242 4242 4242",
@@ -250,10 +284,10 @@ def test_put_order(client):
             "expiration_month" : 9
         }
     })
-    assert rv.status_code == 200
+    assert rv.status_code == 202
 
-    #Order has already been payed
-    rv = client.put('/order/1', json={
+    #Order being treated
+    rv = client.put('/order/3', json={
         "credit_card" : {
             "name" : "John Doe",
             "number" : "4242 4242 4242 4242",
@@ -262,5 +296,5 @@ def test_put_order(client):
             "expiration_month" : 9
         }
     })
-    assert rv.status_code == 422
+    assert rv.status_code == 409
     

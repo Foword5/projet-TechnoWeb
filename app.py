@@ -5,11 +5,12 @@ from urllib.error import HTTPError
 import json
 from models import *
 import redis
+from rq import Queue, Worker, get_current_job
 
 app = Flask(__name__)
-redis_url = os.environ.get('REDIS_URL')
-# redis_url = "redis://localhost"
-redis_client = redis.from_url(redis_url)
+REDIS_URL = os.environ.get('REDIS_URL')
+# REDIS_URL = "redis://localhost"
+redis_client = redis.from_url(REDIS_URL)
 
 @app.route('/')
 def products():
@@ -21,6 +22,13 @@ def products():
 #get order
 @app.route('/order/<int:id>', methods=['GET'])
 def get_order(id):
+
+    paymentQueue = Queue(name='payment', connection=redis_client, result_ttl=10)
+
+    currendJob = paymentQueue.fetch_job(str(id))
+    if currendJob != None and currendJob.is_finished == False:
+        return "", 202
+
     order = redis_client.get(id)
     if order == None:
         try:
@@ -159,6 +167,18 @@ def create_order():
 
 @app.route('/order/<int:order_id>', methods=["PUT"])
 def update_order(order_id):
+    paymentQueue = Queue(name='payment', connection=redis_client, result_ttl=10)
+
+    currendJob = paymentQueue.fetch_job(str(order_id))
+    if currendJob != None and currendJob.is_finished == False:
+        return jsonify({
+            "errors" : {
+                "order": {
+                    "code": "in-process",
+                    "name": "La commande est en cours de traitement.",
+                    }
+                }
+            } ), 409
     try:
         order = Order.get(Order.id == order_id)
         #jsonify the order
@@ -256,51 +276,15 @@ def update_order(order_id):
                         }
                     } ), 422
             
-            try:
-                #creating the data to send to the payement API
-                paymentData = {
-                    "credit_card" : creditCardInfo,
-                    "amount_charged": order["shipping_price"]
-                }
+            #creating the data to send to the payement API
+            paymentData = {
+                "credit_card" : creditCardInfo,
+                "amount_charged": order["shipping_price"]
+            }
 
-                #asking the payement API if the payement is accepted
-                paymenent = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/pay/", data = json.dumps(paymentData).encode('utf-8'))
-                payementInfo = json.loads(paymenent.read().decode("utf-8"))
-
-                #creating the credit card info
-                creditCard =  Credit_Card.create(
-                    name = payementInfo["credit_card"]["name"],
-                    first_digits = payementInfo["credit_card"]["first_digits"],
-                    last_digits = payementInfo["credit_card"]["last_digits"],
-                    expiration_year = payementInfo["credit_card"]["expiration_year"],
-                    expiration_month = payementInfo["credit_card"]["expiration_month"]
-                )
-
-                #creating the transaction infos
-                transaction = Transaction.create(
-                    id = payementInfo["transaction"]["id"],
-                    success = payementInfo["transaction"]["success"],
-                    amount_charged = payementInfo["transaction"]["amount_charged"]
-                )
-
-                #Adding the creadit card info and the transaction info to the order
-                (
-                    Order.update({"transaction":transaction,"credit_card":creditCard, "paid":payementInfo["transaction"]["success"]})
-                    .where(Order.id ==order_id)
-                    .execute()
-                )
-
-                order = Order.get(Order.id == order_id)
-                #jsonify the order
-                order = model_to_dict(order)
-
-                redis_client.set(order["id"], json.dumps(order))
-                return jsonify(order), 200
-
-            except HTTPError as e:
-                #if the paymenet is refused, then we send the error
-                payementInfo = json.loads(e.read())
-                return jsonify(payementInfo), e.code
+            job = paymentQueue.enqueue(checkForPayement, paymentData, order_id, job_id=str(order_id))
+            
+            return "", 202
         
         return jsonify({
                 "errors" : {
@@ -319,11 +303,84 @@ def update_order(order_id):
                 } 
             } ), 404
 
+#A function to check if the payement is accepted
+def checkForPayement(creditCardInfo, order_id):
+    try :
+        #asking the payement API if the payement is accepted
+        paymenent = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/pay/", data = json.dumps(creditCardInfo).encode('utf-8'))
+        payementInfo = json.loads(paymenent.read().decode("utf-8"))
+
+        creditCard =  Credit_Card.create(
+            name = payementInfo["credit_card"]["name"],
+            first_digits = payementInfo["credit_card"]["first_digits"],
+            last_digits = payementInfo["credit_card"]["last_digits"],
+            expiration_year = payementInfo["credit_card"]["expiration_year"],
+            expiration_month = payementInfo["credit_card"]["expiration_month"]
+        )
+
+        #creating the transaction infos
+        transaction = Transaction.create(
+            id = payementInfo["transaction"]["id"],
+            success = payementInfo["transaction"]["success"],
+            amount_charged = payementInfo["transaction"]["amount_charged"]
+        )
+
+        #Adding the creadit card info and the transaction info to the order
+        (
+            Order.update({"transaction":transaction,"credit_card":creditCard, "paid":payementInfo["transaction"]["success"]})
+            .where(Order.id == order_id)
+            .execute()
+        )
+
+        order = Order.get(Order.id == order_id)
+        #jsonify the order
+        order = model_to_dict(order)
+
+        redis_client.set(order["id"], json.dumps(order))
+    
+    except HTTPError as e:
+        #if the paymenet is refused, then we send the error
+        payementInfo = json.loads(e.read())
+
+        PaymentError.create(
+            statusCode = e.code,
+            code = payementInfo["errors"]["credit_card"]["code"]
+        )
+
+        error = Error.create(
+            code = payementInfo["errors"]["credit_card"]["code"],
+            name = payementInfo["errors"]["credit_card"]["name"]
+        )
+
+        transaction = Transaction.create(
+            success = False,
+            error = error
+        )
+
+        #add the error to the order
+        (
+            Order.update({"transaction":transaction})
+            .where(Order.id == order_id)
+            .execute()
+        )
+    
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
-    db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered],cascade=True)
-    db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered])
+    connection = redis.from_url(os.environ.get('REDIS_URL'))
+    # connection = redis.from_url("redis://localhost")
+    connection.flushdb()
+
+    db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered, PaymentError, Error],cascade=True)
+    db.create_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered, PaymentError, Error])
+
+@app.cli.command("worker")
+def worker():
+    connection = redis.from_url(os.environ.get('REDIS_URL'))
+    # connection = redis.from_url("redis://localhost")
+    
+    my_worker = Worker(queues=[Queue('payment', connection=connection, result_ttl=10)], connection=connection)
+    my_worker.work()
 
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
 def init_products():

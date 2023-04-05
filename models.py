@@ -1,4 +1,5 @@
 import peewee as p
+import datetime
 import os
 
 DB_HOST = os.environ.get('DB_HOST')
@@ -54,10 +55,17 @@ class Credit_Card(BaseModel):
     expiration_year = p.IntegerField()
     expiration_month = p.IntegerField()
 
+class Error(BaseModel):
+    id = p.AutoField(primary_key=True)
+    code = p.CharField()
+    name = p.CharField()
+
 class Transaction(BaseModel):
-    id = p.CharField(primary_key=True)
+    true_id = p.AutoField(primary_key=True)
+    id = p.CharField(null=True)
     success = p.BooleanField(default=False)
-    amount_charged = p.DoubleField()
+    amount_charged = p.DoubleField(null=True)
+    error = p.ForeignKeyField(Error,null=True)
 
 class Order(BaseModel):
     id = p.AutoField(primary_key=True)
@@ -73,3 +81,9 @@ class ProductOrdered(BaseModel):
     product = p.ForeignKeyField(Product)
     order = p.ForeignKeyField(Order)
     quantity = p.IntegerField()
+
+class PaymentError(BaseModel):
+    id = p.AutoField(primary_key=True)
+    statusCode = p.CharField()
+    code = p.CharField()
+    time = p.DateTimeField(default=datetime.datetime.now)
