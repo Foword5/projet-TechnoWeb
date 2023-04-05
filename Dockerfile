@@ -11,10 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copie tout le code source dans l'image
-COPY . /app
+COPY /code /app/
 
 # Expose le port 5000 pour les connexions entrantes
 EXPOSE 5000
 
-CMD flask init-db && flask run --host='0.0.0.0'
+CMD flask init-db && flask run --host='0.0.0.0' & flask worker
 
