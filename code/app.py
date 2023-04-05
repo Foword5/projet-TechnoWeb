@@ -9,7 +9,6 @@ from rq import Queue, Worker, get_current_job
 
 app = Flask(__name__)
 REDIS_URL = os.environ.get('REDIS_URL')
-# REDIS_URL = "redis://localhost"
 redis_client = redis.from_url(REDIS_URL)
 
 @app.route('/')

@@ -9,13 +9,6 @@ DB_PORT = os.environ.get('DB_PORT')
 DB_NAME = os.environ.get('DB_NAME')
 
 
-# DB_HOST = 'localhost'
-# DB_USER = 'user'
-# DB_PASSWORD = 'pass'
-# DB_PORT = '5432'
-# DB_NAME = 'api8inf349'
-
-
 db = p.PostgresqlDatabase(
     DB_NAME,
     user=DB_USER,
