@@ -6,8 +6,10 @@ import json
 from models import *
 import redis
 from rq import Queue, Worker, get_current_job
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 REDIS_URL = os.environ.get('REDIS_URL')
 redis_client = redis.from_url(REDIS_URL)
 
