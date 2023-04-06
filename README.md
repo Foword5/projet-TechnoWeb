@@ -77,13 +77,18 @@ Prerequisites :
 Lancer les services :<br />
 Run services :
 ```sh
-docker-compose up
+docker compose up
 ```
-Lancer l'application :<br />
-Run the app :
+Lancer l'application sur Windows :<br />
+Run the app on windows :
 ```sh
 docker build -t api8inf349 .
 docker run -e REDIS_URL=redis://host.docker.internal -e DB_HOST=host.docker.internal -e DB_USER=user -e DB_PASSWORD=pass -e DB_NAME=api8inf349 -e DB_PORT=5432 -p 5000:5000 api8inf349
 ```
 
-
+Lancer l'application sur Linux ou MacOS:<br />
+Run the app on Linux or MacOS :
+```sh
+docker build -t api8inf349 .
+docker run -e REDIS_URL=redis://172.17.0.1 -e DB_HOST=172.17.0.1 -e DB_USER=user -e DB_PASSWORD=pass -e DB_NAME=api8inf349 -e DB_PORT=5432 -p 5000:5000 api8inf349
+```
