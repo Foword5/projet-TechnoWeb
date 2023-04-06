@@ -207,7 +207,9 @@ def update_order(order_id):
                 "address" not in orderInfo["shipping_information"] or
                 "postal_code" not in orderInfo["shipping_information"] or
                 "city" not in orderInfo["shipping_information"] or
-                "province" not in orderInfo["shipping_information"]) :
+                "province" not in orderInfo["shipping_information"] or 
+                order["email"] != "" or
+                order["shipping_information"] != "") :
                 return jsonify({
                     "errors" : {
                         "order": {
