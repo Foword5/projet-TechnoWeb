@@ -208,12 +208,12 @@ def update_order(order_id):
                 "postal_code" not in orderInfo["shipping_information"] or
                 "city" not in orderInfo["shipping_information"] or
                 "province" not in orderInfo["shipping_information"] or 
-                order["email"] == "" or
-                order["shipping_information"]["country"] == "" or
-                order["shipping_information"]["address"] == "" or
-                order["shipping_information"]["postal_code"] == "" or
-                order["shipping_information"]["city"] == "" or
-                order["shipping_information"]["province"] == "" ):
+                orderInfo["email"] == "" or
+                orderInfo["shipping_information"]["country"] == "" or
+                orderInfo["shipping_information"]["address"] == "" or
+                orderInfo["shipping_information"]["postal_code"] == "" or
+                orderInfo["shipping_information"]["city"] == "" or
+                orderInfo["shipping_information"]["province"] == "" ):
                 return jsonify({
                     "errors" : {
                         "order": {
@@ -376,7 +376,7 @@ def checkForPayement(creditCardInfo, order_id):
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
-    connection = redis.from_url(os.environ.get('REDIS_URL'))
+    connection = redis.from_url(os.environ.get('REDIS_URL'), socket_timeout=None)
     connection.flushdb()
 
     db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered, PaymentError, Error],cascade=True)
@@ -384,7 +384,7 @@ def init_db():
 
 @app.cli.command("worker")
 def worker():
-    connection = redis.from_url(os.environ.get('REDIS_URL'), socket_timeout=None)
+    connection = redis.from_url(os.environ.get('REDIS_URL'))
     
     my_worker = Worker(queues=[Queue('payment', connection=connection, result_ttl=10)], connection=connection)
     my_worker.work()
