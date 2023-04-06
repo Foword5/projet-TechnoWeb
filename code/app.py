@@ -5,13 +5,12 @@ from urllib.error import HTTPError
 import json
 from models import *
 import redis
-from rq import Queue, Worker, get_current_job
+from rq import Queue, Worker
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 REDIS_URL = os.environ.get('REDIS_URL')
-redis_client = redis.from_url(REDIS_URL)
 
 @app.route('/')
 def products():
@@ -24,6 +23,7 @@ def products():
 @app.route('/order/<int:id>', methods=['GET'])
 def get_order(id):
 
+    redis_client = redis.from_url(REDIS_URL)
     paymentQueue = Queue(name='payment', connection=redis_client, result_ttl=10)
 
     currendJob = paymentQueue.fetch_job(str(id))
@@ -168,6 +168,7 @@ def create_order():
 
 @app.route('/order/<int:order_id>', methods=["PUT"])
 def update_order(order_id):
+    redis_client = redis.from_url(REDIS_URL)
     paymentQueue = Queue(name='payment', connection=redis_client, result_ttl=10)
 
     currendJob = paymentQueue.fetch_job(str(order_id))
@@ -337,6 +338,7 @@ def checkForPayement(creditCardInfo, order_id):
         #jsonify the order
         order = model_to_dict(order)
 
+        redis_client = redis.from_url(REDIS_URL)
         redis_client.set(order["id"], json.dumps(order))
     
     except HTTPError as e:
