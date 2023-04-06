@@ -376,7 +376,7 @@ def checkForPayement(creditCardInfo, order_id):
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
 def init_db():
-    connection = redis.from_url(os.environ.get('REDIS_URL'), socket_timeout=None)
+    connection = redis.from_url(os.environ.get('REDIS_URL'))
     connection.flushdb()
 
     db.drop_tables([Product, Shipping_Information, Credit_Card, Transaction, Order, ProductOrdered, PaymentError, Error],cascade=True)
@@ -384,7 +384,7 @@ def init_db():
 
 @app.cli.command("worker")
 def worker():
-    connection = redis.from_url(os.environ.get('REDIS_URL'))
+    connection = redis.from_url(os.environ.get('REDIS_URL'), socket_timeout=None)
     
     my_worker = Worker(queues=[Queue('payment', connection=connection, result_ttl=10)], connection=connection)
     my_worker.work()
