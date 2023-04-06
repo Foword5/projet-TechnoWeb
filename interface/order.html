@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Panier</title>
+	<meta charset="utf-8">
+    <script src="scripts/scriptOrder.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="shipping_information">
+        <h2> Informations de livraison</h2>
+        <form action="order.html" method="post">
+            <label for="name">Nom</label>
+            <input type="text" id="name" name="name" placeholder="Votre nom..">
+            <label for="address">Adresse</label>
+            <input type="text" id="address" name="address" placeholder="Votre adresse..">
+            <label for="city">Ville</label>
+            <input type="text" id="city" name="city" placeholder="Votre ville..">
+            <label for="country">Pays</label>
+            <input type="text" id="country" name="country" placeholder="Votre pays..">
+            <label for="postal_code">Code postal</label>
+            <input type="text" id="postal_code" name="postal_code" placeholder="Votre code postal..">
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email" placeholder="Votre email..">
+            <input type="submit" class="panier_button" value="Commander">
+        </form>
