@@ -85,5 +85,5 @@ Run the app :
 docker build -t api8inf349 .
 docker run -e REDIS_URL=redis://host.docker.internal -e DB_HOST=host.docker.internal -e DB_USER=user -e DB_PASSWORD=pass -e DB_NAME=api8inf349 -e DB_PORT=5432 -p 5000:5000 api8inf349
 ```
-```
+
 
