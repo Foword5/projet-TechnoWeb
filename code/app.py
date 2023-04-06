@@ -208,12 +208,12 @@ def update_order(order_id):
                 "postal_code" not in orderInfo["shipping_information"] or
                 "city" not in orderInfo["shipping_information"] or
                 "province" not in orderInfo["shipping_information"] or 
-                order["email"] != "" or
-                order["shipping_information"]["country"] != "" or
-                order["shipping_information"]["address"] != "" or
-                order["shipping_information"]["postal_code"] != "" or
-                order["shipping_information"]["city"] != "" or
-                order["shipping_information"]["province"] != "" ):
+                order["email"] == "" or
+                order["shipping_information"]["country"] == "" or
+                order["shipping_information"]["address"] == "" or
+                order["shipping_information"]["postal_code"] == "" or
+                order["shipping_information"]["city"] == "" or
+                order["shipping_information"]["province"] == "" ):
                 return jsonify({
                     "errors" : {
                         "order": {
