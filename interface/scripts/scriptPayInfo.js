@@ -31,8 +31,7 @@ function sendData() {
     })
         //si le paiment a été accepté l'api renvoie juste un code 200, sinon on affiche l'erreur
         .then((response) => {
-            if (response.status == 200) {
-                alert("Votre paiement est en cours de traitement...consultez le statut de votre commande pour voir si celui-ci a été accepté.");
+            if (response.status == 202) {
                 window.location.href = "order.html";
             } else {
                 //on récupère le message d'erreur de l'api

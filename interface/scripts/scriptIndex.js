@@ -21,17 +21,20 @@ function displayProducts(data) {
         productsTable.innerHTML += `
             <tr class="product">
                 <td class="product_name">${product.name}</td>
-                <td class="product_price">${product.price}</td>
+                <td class="product_price">${product.price}$</td>
                 <td class="product_description">${product.description}</td>
                 <td class="product_type">${product.type}</td>
-                <td class="product_weight">${product.weight}</td>
+                <td class="product_weight">${product.weight}g</td>
                 <td><input type="number" name="quantity" id="quantity${product.id}" min="0" max="100" value=0></td>
-                <td><input type="button" id="add${product.id}" value="Ajouter" onclick="addProduct(${product.id},document.querySelector('#quantity${product.id}').value)"></td>
+                <td><input type="button" class="button" id="add${product.id}" value="Ajouter" onclick="addProduct(${product.id},document.querySelector('#quantity${product.id}').value)"></td>
             </tr>
         `;
         if (product.in_stock == false) {
             document.getElementById("quantity" + product.id).disabled = true;
             document.getElementById("add" + product.id).disabled = true;
+            //changer la classe du bouton en add_button_disabled
+            document.getElementById("add" + product.id).classList.add("button_disabled");
+            document.getElementById("add" + product.id).classList.remove("button");
         }
 
     });

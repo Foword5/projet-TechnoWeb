@@ -1,12 +1,14 @@
 //AU CHARGEMENT DE LA PAGE
 window.onload = function () {
-// Récupération de l'ID de la commande depuis le localStorage
-const orderId = localStorage.getItem("orderId");
+    // Récupération de l'ID de la commande depuis le localStorage
+    const orderId = localStorage.getItem("orderId");
 
-// Requête GET vers l'API pour récupérer les informations de la commande
-    fetch(`http://localhost:5000/order/${orderId}`)
-    .then(response => response.json())
-    .then(data => {
+    // Requête GET vers l'API pour récupérer les informations de la commande
+    //si la reponse ne contient pas de corps, cela signie que la commande est en cours de paiement, on affiche donc un message d'attente et on relance la fonction toutes les 5 secondes
+    fetch("http://localhost:5000/order/" + orderId)
+    .then((response) => response.json())
+    .then((data) => {
+        if(data.id){
             // Création des éléments HTML pour afficher les informations de la commande
             const orderInfo = document.getElementById("order-info");
 
@@ -42,7 +44,7 @@ const orderId = localStorage.getItem("orderId");
             orderInfo.appendChild(transactionElement);
 
             const productsElement = document.createElement("div");
-            const productsTitleElement = document.createElement("h2");
+            const productsTitleElement = document.createElement("h3");
             productsTitleElement.textContent = "Produits:";
             productsElement.appendChild(productsTitleElement);
             const productListElement = document.createElement("ul");
@@ -53,5 +55,15 @@ const orderId = localStorage.getItem("orderId");
             });
             productsElement.appendChild(productListElement);
             orderInfo.appendChild(productsElement);
+        } else {
+            alert("Erreur : " + data.errors.order.name);
+        }    
+    })
+    .catch((error) => {
+        console.log(error.message);
+        alert("Le paiement de votre commande est en cours de traitement, veuillez patienter...");
+        setTimeout(function(){ window.location.reload(); }, 2000);
     });
+
 };
+    

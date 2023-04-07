@@ -1,38 +1,138 @@
-.products_container {
-    max-width: 800px;
-    margin: auto;
-    padding: 20px;
-  }
-  
-  table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-  
-  th, td {
-    text-align: left;
-    padding: 8px;
-  }
-  
-  th {
-    background-color: #4CAF50;
-    color: white;
-  }
-  
-  tr:nth-child(even) {
-    background-color: #f2f2f2;
-  }
+/* Style global */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+}
 
-/*afficher le bouton panier en haut à droite*/
+/* Style de la zone de conteneur des produits */
+.container {
+  margin: 50px auto;
+  max-width: 800px;
+  background-color: #fff;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Style de l'en-tête */
 .header {
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin: 10px;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border-radius: 5px;
-    text-decoration: none;
-  }
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
 
+/* Style du pied de page : placer le bouton retour en bas a gauche et le bouton commander en bas a droite */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+
+/* Style du titre */
+h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+/* Style du tableau */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 4px;
+}
+
+/* Style de l'en-tête du tableau */
+thead {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+/* Style des cellules du tableau */
+td, th {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Style des cellules du tableau au survol */
+tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Style des boutons */
+.button {
+  background-color: #4CAF50;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: block;
+}
+
+/* Style des boutons au survol */
+.button:hover {
+  background-color: #3e8e41;
+}
+
+/* Style des boutons désactivés */
+.button_disabled {
+  background-color: #ccc;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+  cursor: not-allowed;
+}
+
+/* Style des labels */
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* Style des champs de saisie */
+input[type=text], input[type=number]{
+  width: 90%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+/*Style des champs de saisie de type nombre */
+input[type=number] {
+  width: 50px;
+}
+
+/* Styles pour le contenu de la commande */
+#order-info {
+  background-color: #fff;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+/* Styles pour les éléments de la commande */
+#order-info p {
+  margin: 0 0 10px 0;
+}
+
+/* Styles pour les listes des produits */
+#order-info ul {
+  margin: 0;
+  padding: 0;
+}
+
+/* Styles pour les éléments de liste des produits */
+#order-info li {
+  margin-bottom: 10px;
+  list-style-type: none;
+  font-size: 16px;
+  color: #333;
+}

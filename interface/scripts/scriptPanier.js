@@ -28,7 +28,7 @@ function displayCart() {
                         <td class="product_type">${product.type}</td>
                         <td class="product_weight">${product.weight}</td>
                         <td class="product_quantity">${product.quantity}</td>
-                        <td><input type="button" value="Supprimer" onclick="deleteProduct(${product.id})"></td>
+                        <td><input type="button" class=button value="Supprimer" onclick="deleteProduct(${product.id})"></td>
                     </tr>
                 `;
             }); 
@@ -71,4 +71,9 @@ function createOrder() {
             }
         });
     
+}
+
+//function pour retourner à l'index
+function backToIndex() {
+    window.location.href = "index.html";
 }
