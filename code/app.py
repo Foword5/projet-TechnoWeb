@@ -7,6 +7,7 @@ from models import *
 import redis
 from rq import Queue, Worker
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -313,65 +314,76 @@ def update_order(order_id):
 
 #A function to check if the payement is accepted
 def checkForPayement(creditCardInfo, order_id):
-    try :
-        #asking the payement API if the payement is accepted
-        paymenent = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/pay/", data = json.dumps(creditCardInfo).encode('utf-8'))
-        payementInfo = json.loads(paymenent.read().decode("utf-8"))
+    tries = 0
+    while tries < 5:
+        try :
+            #asking the payement API if the payement is accepted
+            paymenent = urllib.request.urlopen("http://dimprojetu.uqac.ca/~jgnault/shops/pay/", data = json.dumps(creditCardInfo).encode('utf-8'), timeout=3)
 
-        creditCard =  Credit_Card.create(
-            name = payementInfo["credit_card"]["name"],
-            first_digits = payementInfo["credit_card"]["first_digits"],
-            last_digits = payementInfo["credit_card"]["last_digits"],
-            expiration_year = payementInfo["credit_card"]["expiration_year"],
-            expiration_month = payementInfo["credit_card"]["expiration_month"]
-        )
+            payementInfo = json.loads(paymenent.read().decode("utf-8"))
 
-        #creating the transaction infos
-        transaction = Transaction.create(
-            id = payementInfo["transaction"]["id"],
-            success = payementInfo["transaction"]["success"],
-            amount_charged = payementInfo["transaction"]["amount_charged"]
-        )
+            creditCard =  Credit_Card.create(
+                name = payementInfo["credit_card"]["name"],
+                first_digits = payementInfo["credit_card"]["first_digits"],
+                last_digits = payementInfo["credit_card"]["last_digits"],
+                expiration_year = payementInfo["credit_card"]["expiration_year"],
+                expiration_month = payementInfo["credit_card"]["expiration_month"]
+            )
 
-        #Adding the creadit card info and the transaction info to the order
-        (
-            Order.update({"transaction":transaction,"credit_card":creditCard, "paid":payementInfo["transaction"]["success"]})
-            .where(Order.id == order_id)
-            .execute()
-        )
+            #creating the transaction infos
+            transaction = Transaction.create(
+                id = payementInfo["transaction"]["id"],
+                success = payementInfo["transaction"]["success"],
+                amount_charged = payementInfo["transaction"]["amount_charged"]
+            )
 
-        order = Order.get(Order.id == order_id)
-        #jsonify the order
-        order = model_to_dict(order)
+            #Adding the creadit card info and the transaction info to the order
+            (
+                Order.update({"transaction":transaction,"credit_card":creditCard, "paid":payementInfo["transaction"]["success"]})
+                .where(Order.id == order_id)
+                .execute()
+            )
 
-        redis_client = redis.from_url(REDIS_URL)
-        redis_client.set(order["id"], json.dumps(order))
-    
-    except HTTPError as e:
-        #if the paymenet is refused, then we send the error
-        payementInfo = json.loads(e.read())
+            order = Order.get(Order.id == order_id)
+            #jsonify the order
+            order = model_to_dict(order)
 
-        PaymentError.create(
-            statusCode = e.code,
-            code = payementInfo["errors"]["credit_card"]["code"]
-        )
+            redis_client = redis.from_url(REDIS_URL)
+            redis_client.set(order["id"], json.dumps(order))
+            break
+        
+        except HTTPError as e:
+            #if the paymenet is refused, then we send the error
+            payementInfo = json.loads(e.read())
 
-        error = Error.create(
-            code = payementInfo["errors"]["credit_card"]["code"],
-            name = payementInfo["errors"]["credit_card"]["name"]
-        )
+            PaymentError.create(
+                statusCode = e.code,
+                code = payementInfo["errors"]["credit_card"]["code"]
+            )
 
-        transaction = Transaction.create(
-            success = False,
-            error = error
-        )
+            error = Error.create(
+                code = payementInfo["errors"]["credit_card"]["code"],
+                name = payementInfo["errors"]["credit_card"]["name"]
+            )
 
-        #add the error to the order
-        (
-            Order.update({"transaction":transaction})
-            .where(Order.id == order_id)
-            .execute()
-        )
+            transaction = Transaction.create(
+                success = False,
+                error = error
+            )
+
+            #add the error to the order
+            (
+                Order.update({"transaction":transaction})
+                .where(Order.id == order_id)
+                .execute()
+            )
+            break
+        except urllib.error.URLError as e:
+            print("\033[91m" + "Timeout error, retrying in " + str(tries*2) + " seconds" + "\033[0m")
+            time.sleep(tries*2)
+            tries += 1
+            continue
+
     
 
 @app.cli.command("init-db") # s'exécute avec la commande flask init-db
@@ -384,12 +396,12 @@ def init_db():
 
 @app.cli.command("worker")
 def worker():
-    print("Starting worker")
     while 1:
         connection = redis.from_url(os.environ.get('REDIS_URL'), socket_timeout=86400)
         
         my_worker = Worker(queues=[Queue('payment', connection=connection, result_ttl=10)], connection=connection)
         my_worker.work()
+        print("\033[93m" + "Restarting worker" + "\033[0m")
 
 @app.before_first_request # s'exécute entre le démarrage du serveur et le premier appel
 def init_products():
