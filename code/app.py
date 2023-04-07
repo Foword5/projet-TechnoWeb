@@ -350,7 +350,7 @@ def checkForPayement(creditCardInfo, order_id):
 
             redis_client = redis.from_url(REDIS_URL)
             redis_client.set(order["id"], json.dumps(order))
-            break
+            return
         
         except HTTPError as e:
             #if the paymenet is refused, then we send the error
@@ -377,12 +377,33 @@ def checkForPayement(creditCardInfo, order_id):
                 .where(Order.id == order_id)
                 .execute()
             )
-            break
+            return
         except urllib.error.URLError as e:
             print("\033[91m" + "Timeout error, retrying in " + str(tries*2) + " seconds" + "\033[0m")
             time.sleep(tries*2)
             tries += 1
             continue
+    PaymentError.create(
+        statusCode = 408,
+        code = "API Request Timeout",
+    )
+
+    error = Error.create(
+        code = "API Request Timeout",
+        name = "The payment API request timed out 5 times"
+    )
+
+    transaction = Transaction.create(
+        success = False,
+        error = error
+    )
+
+    #add the error to the order
+    (
+        Order.update({"transaction":transaction})
+        .where(Order.id == order_id)
+        .execute()
+    )
 
     
 
