@@ -60,15 +60,15 @@ function createOrder() {
         body: JSON.stringify(order),
     })
         .then((response) => response.json())
+        //si la commande a été créée, on affiche le numéro de commande, sinon on affiche l'erreur
         .then((data) => {
-            //on enregistre l'id de la commande dans le localstorage
-            localStorage.setItem("orderId", data.id);
-            //on redirige vers la page de confirmation
-            window.location.href = "order.html";
-        }
-        )
-        .catch((error) => {
-            alert(error.errors.product.name);      
+            if (data.id) {
+                localStorage.setItem("orderId", data.id);
+                //on redirige vers la page de confirmation
+                window.location.href = "orderInfo.html";
+            } else {
+                alert("Erreur : " + data.errors.product.name);
+            }
         });
     
 }

@@ -46,7 +46,7 @@ function addProduct(productid, quantity) {
     }
     let productToAdd = {
         id : productid,
-        quantity: quantity
+        quantity: parseInt(quantity)
     };
     let cart = JSON.parse(localStorage.getItem("cart"));
     if (cart == null) {
@@ -57,9 +57,6 @@ function addProduct(productid, quantity) {
     cart.forEach((product) => {
         if (product.id == productToAdd.id) {
             productAlreadyInCart = true;
-            //on transforme la quantité en nombre
-            product.quantity = parseInt(product.quantity);
-            productToAdd.quantity = parseInt(productToAdd.quantity);
             product.quantity += productToAdd.quantity;
         }
     });
@@ -67,6 +64,7 @@ function addProduct(productid, quantity) {
         cart.push(productToAdd);
     }
     localStorage.setItem("cart", JSON.stringify(cart));
+    alert("Le produit a bien été ajouté au panier");
 }
 
 
